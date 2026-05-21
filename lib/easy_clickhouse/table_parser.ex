@@ -41,7 +41,7 @@ defmodule EasyClickhouse.TableParser do
     end
   end
 
-  @spec opts(Types.rows(), list(String.t())) :: Types.opts()
+  @spec opts(Types.rows(), [String.t()]) :: Types.opts()
   def opts(rows, except \\ []) do
     rows
     |> Enum.reduce(

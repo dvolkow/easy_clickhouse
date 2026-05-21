@@ -2,7 +2,7 @@ defmodule EasyClickhouse.Types do
   @type row() :: [any()]
 
   @type supervisor_table() ::
-          {atom(), atom(), integer()} | {atom(), atom(), integer(), list(String.t())}
+          {atom(), atom(), integer()} | {atom(), atom(), integer(), [String.t()]}
 
   @type table_row() :: %{
           required(:name) => String.t(),
