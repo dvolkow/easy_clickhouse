@@ -37,4 +37,16 @@ defmodule EasyClickhouse do
       {:enqueue_batch, rows}
     )
   end
+
+  @doc """
+  Get table opts.
+  """
+  @spec table_opts(atom(), atom()) :: Types.opts()
+  def table_opts(database, table) do
+    GenServer.call(
+      {:via, Registry,
+       {EasyClickhouse.Registry, EasyClickhouse.Supervisor.registry_name(database, table)}},
+      :opts
+    )
+  end
 end
