@@ -66,7 +66,6 @@ defmodule EasyClickhouse.RowParser do
   Returns the table row of a list of parsed values by their types.
   """
   @spec parse(map(), String.t(), String.t()) :: t()
-
   def parse(data, field_name, field_type) do
     data
     |> Map.get(field_name, @defaults[field_type])

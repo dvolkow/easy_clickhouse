@@ -11,6 +11,7 @@ defmodule EasyClickhouse.Batcher do
     GenServer.start_link(__MODULE__, config, name: name)
   end
 
+  @impl true
   def init(%{rate: rate, database: database, table: table, except: except} = init_state) do
     Logger.debug("#{__MODULE__}:#{table} starting...")
 
@@ -29,6 +30,7 @@ defmodule EasyClickhouse.Batcher do
     Process.send_after(self(), :update_state, rate)
   end
 
+  @impl true
   def handle_info(:update_state, %{rate: rate} = state) do
     schedule_update(rate)
 
@@ -44,19 +46,23 @@ defmodule EasyClickhouse.Batcher do
     {:noreply, new_state}
   end
 
+  @impl true
   def handle_info(_, state) do
     {:noreply, state}
   end
 
-  def handle_call(:opts, %{opts: opts} = state) do
+  @impl true
+  def handle_call(:opts, _from, %{opts: opts} = state) do
     {:reply, opts, state}
   end
 
+  @impl true
   def handle_cast({:enqueue, row}, %{queue: queue, qlength: qlength} = state)
       when is_list(row) do
     {:noreply, state |> Map.merge(%{qlength: qlength + 1, queue: [row | queue]})}
   end
 
+  @impl true
   def handle_cast({:enqueue_batch, rows}, %{queue: queue, qlength: qlength} = state)
       when is_list(rows) do
     {:noreply, state |> Map.merge(%{qlength: qlength + Enum.count(rows), queue: rows ++ queue})}
