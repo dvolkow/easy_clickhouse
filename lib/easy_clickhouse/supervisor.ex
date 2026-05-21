@@ -4,8 +4,8 @@ defmodule EasyClickhouse.Supervisor do
 
   alias EasyClickhouse.Types
 
-  @spec define_supervisor(atom(), atom(), integer()) :: Supervisor.child_spec()
-  defp define_supervisor(database, table_name, rate) do
+  @spec define_supervisor(atom(), atom(), integer(), list(String.t())) :: Supervisor.child_spec()
+  defp define_supervisor(database, table_name, rate, except_list \\ []) do
     Supervisor.child_spec(
       {EasyClickhouse.Batcher,
        name: {:via, Registry, {EasyClickhouse.Registry, registry_name(database, table_name)}},
@@ -13,7 +13,7 @@ defmodule EasyClickhouse.Supervisor do
          rate: rate,
          database: Atom.to_string(database),
          table: Atom.to_string(table_name),
-         except: [],
+         except: except_list,
          queue: [],
          qlength: 0
        }},
@@ -32,8 +32,12 @@ defmodule EasyClickhouse.Supervisor do
   defp get_children(tables) do
     [
       Registry.child_spec(keys: :unique, name: EasyClickhouse.Registry)
-      | Enum.map(tables, fn {database, table, rate} ->
-          define_supervisor(database, table, rate)
+      | Enum.map(tables, fn
+          {database, table, rate} ->
+            define_supervisor(database, table, rate)
+
+          {database, table, rate, except} ->
+            define_supervisor(database, table, rate, except)
         end)
     ]
   end
