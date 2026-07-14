@@ -21,6 +21,12 @@ defmodule EasyClickhouse.Batcher do
         :error
 
       opts ->
+        :telemetry.execute(
+          [:easy_clickhouse, :init_batcher],
+          %{ts: DateTime.utc_now()},
+          %{db: database, table: table}
+        )
+
         schedule_update(rate)
         {:ok, init_state |> Map.put(:opts, opts)}
     end
@@ -68,6 +74,17 @@ defmodule EasyClickhouse.Batcher do
     {:noreply, state |> Map.merge(%{qlength: qlength + Enum.count(rows), queue: rows ++ queue})}
   end
 
+  @impl true
+  def terminate(reason, %{database: db, table: table}) do
+    :telemetry.execute(
+      [:easy_clickhouse, :terminate_batcher],
+      %{ts: DateTime.utc_now(), reason: reason},
+      %{db: db, table: table}
+    )
+
+    :ok
+  end
+
   @spec ch_insert([Types.row()], atom(), atom(), Types.opts()) :: :ok | :error
   def ch_insert(queue, database, table, opts) when is_list(queue) do
     sql = "INSERT INTO #{database}.#{table} FORMAT RowBinaryWithNamesAndTypes"
@@ -76,14 +93,34 @@ defmodule EasyClickhouse.Batcher do
     case EasyClickhouse.ChServer.conn() |> Ch.query(sql, queue, opts) do
       {:ok, %Ch.Result{num_rows: num_rows}} when num_rows == ref_length ->
         Logger.debug("inserted #{num_rows} rows to #{database}.#{table}")
+
+        :telemetry.execute(
+          [:easy_clickhouse, :insert],
+          %{ts: DateTime.utc_now(), rows: num_rows, status: :ok},
+          %{db: database, table: table}
+        )
+
         :ok
 
       {:ok, %Ch.Result{num_rows: num_rows}} ->
-        Logger.warning("inserted #{num_rows} instead of ref_length to #{database}.#{table}")
+        Logger.warning("inserted #{num_rows} instead of #{ref_length} to #{database}.#{table}")
+
+        :telemetry.execute(
+          [:easy_clickhouse, :insert],
+          %{ts: DateTime.utc_now(), rows: num_rows, status: :ok},
+          %{db: database, table: table}
+        )
+
         :error
 
       e ->
-        Logger.warning("#{inspect(e)}")
+        Logger.error("[easy_clickhouse batcher #{database}.#{table}] #{inspect(e)}")
+
+        :telemetry.execute(
+          [:easy_clickhouse, :insert],
+          %{ts: DateTime.utc_now(), rows: 0, status: e},
+          %{db: database, table: table}
+        )
 
         GenServer.cast(
           {:via, Registry,
