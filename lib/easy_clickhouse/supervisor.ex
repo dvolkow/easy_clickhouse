@@ -51,7 +51,11 @@ defmodule EasyClickhouse.Supervisor do
       tables ->
         ch_timeout_sec = Keyword.get(opts, :ch_timeout_sec)
 
-        [{EasyClickhouse.ChServer, timeout_sec: ch_timeout_sec} | get_children(tables)]
+        children =
+          [EasyClickhouse.Telemetry, {EasyClickhouse.ChServer, timeout_sec: ch_timeout_sec}] ++
+            get_children(tables)
+
+        children
         |> Supervisor.init(strategy: :one_for_one)
     end
   end
