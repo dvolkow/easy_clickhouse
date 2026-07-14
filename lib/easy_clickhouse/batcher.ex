@@ -63,6 +63,11 @@ defmodule EasyClickhouse.Batcher do
   end
 
   @impl true
+  def handle_call(:state, _from, state) do
+    {:reply, state, state}
+  end
+
+  @impl true
   def handle_cast({:enqueue, row}, %{queue: queue, qlength: qlength} = state)
       when is_list(row) do
     {:noreply, state |> Map.merge(%{qlength: qlength + 1, queue: [row | queue]})}
