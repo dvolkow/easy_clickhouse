@@ -27,14 +27,17 @@ defmodule EasyClickhouse.Supervisor do
   @spec batchers() :: [{{atom(), atom()}, pid() | nil}]
   def batchers() do
     :ets.tab2list(@ets_table)
-    |> Enum.map(fn {db, table} ->
-      case Registry.lookup(EasyClickhouse.Registry, registry_name(db, table)) do
-        [{pid, _}] ->
-          {{db, table}, pid}
+    |> Enum.map(fn {{db, table}, {rate, except_list}} ->
+      pid =
+        case Registry.lookup(EasyClickhouse.Registry, registry_name(db, table)) do
+          [{pid, _}] ->
+            pid
 
-        [] ->
-          {{db, table}, nil}
-      end
+          [] ->
+            nil
+        end
+
+      {{db, table, rate, except_list}, pid}
     end)
   end
 
