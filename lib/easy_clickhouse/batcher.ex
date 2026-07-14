@@ -5,6 +5,16 @@ defmodule EasyClickhouse.Batcher do
 
   alias EasyClickhouse.Types
 
+  @type t() :: %{
+          required(:queue) => list(),
+          required(:qlength) => integer(),
+          required(:opts) => Types.opts(),
+          required(:rate) => integer(),
+          required(:except) => list(),
+          required(:database) => String.t(),
+          required(:table) => String.t()
+        }
+
   def start_link(opts) do
     name = Keyword.get(opts, :name)
     config = Keyword.get(opts, :config)

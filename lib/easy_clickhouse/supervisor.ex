@@ -41,6 +41,17 @@ defmodule EasyClickhouse.Supervisor do
     end)
   end
 
+  @spec state(atom(), atom()) :: EasyClickhouse.Batcher.t()
+  def state(database, table_name) do
+    case Registry.lookup(EasyClickhouse.Registry, registry_name(database, table_name)) do
+      [{pid, _}] ->
+        pid |> GenServer.call(:state)
+
+      [] ->
+        nil
+    end
+  end
+
   def start_link(init_state) do
     Supervisor.start_link(__MODULE__, init_state, name: __MODULE__)
   end
