@@ -24,7 +24,7 @@ defmodule EasyClickhouse.Supervisor do
     )
   end
 
-  @spec batchers() :: [{{atom(), atom()}, pid() | nil}]
+  @spec batchers() :: [{{atom(), atom(), integer(), [String.t()]}, pid() | nil}]
   def batchers() do
     :ets.tab2list(@ets_table)
     |> Enum.map(fn {{db, table}, {rate, except_list}} ->
