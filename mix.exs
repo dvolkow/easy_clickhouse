@@ -4,7 +4,7 @@ defmodule EasyClickhouse.MixProject do
   def project do
     [
       app: :easy_clickhouse,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -38,7 +38,7 @@ defmodule EasyClickhouse.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ch, "~> 0.8.0"},
+      {:ch, "~> 0.8.3"},
       {:ex_doc, "~> 0.40.1", only: :dev, runtime: false}
     ]
   end

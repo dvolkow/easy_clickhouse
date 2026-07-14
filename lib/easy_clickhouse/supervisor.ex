@@ -1,11 +1,14 @@
 defmodule EasyClickhouse.Supervisor do
   @moduledoc false
   use Supervisor
+  @ets_table :easy_clickhouse_supervisor
 
   alias EasyClickhouse.Types
 
   @spec define_supervisor(atom(), atom(), integer(), list(String.t())) :: Supervisor.child_spec()
   defp define_supervisor(database, table_name, rate, except_list \\ []) do
+    :ets.insert(@ets_table, {{database, table_name}, {rate, except_list}})
+
     Supervisor.child_spec(
       {EasyClickhouse.Batcher,
        name: {:via, Registry, {EasyClickhouse.Registry, registry_name(database, table_name)}},
@@ -19,6 +22,34 @@ defmodule EasyClickhouse.Supervisor do
        }},
       id: table_name
     )
+  end
+
+  @spec batchers() :: [{{atom(), atom(), integer(), [String.t()]}, pid() | nil}]
+  def batchers() do
+    :ets.tab2list(@ets_table)
+    |> Enum.map(fn {{db, table}, {rate, except_list}} ->
+      pid =
+        case Registry.lookup(EasyClickhouse.Registry, registry_name(db, table)) do
+          [{pid, _}] ->
+            pid
+
+          [] ->
+            nil
+        end
+
+      {{db, table, rate, except_list}, pid}
+    end)
+  end
+
+  @spec state(atom(), atom()) :: EasyClickhouse.Batcher.t()
+  def state(database, table_name) do
+    case Registry.lookup(EasyClickhouse.Registry, registry_name(database, table_name)) do
+      [{pid, _}] ->
+        pid |> GenServer.call(:state)
+
+      [] ->
+        nil
+    end
   end
 
   def start_link(init_state) do
@@ -44,6 +75,8 @@ defmodule EasyClickhouse.Supervisor do
 
   @impl true
   def init(opts) do
+    :ets.new(@ets_table, [:named_table, :set, :public, read_concurrency: true])
+
     case Keyword.get(opts, :tables) do
       nil ->
         :error
@@ -51,7 +84,11 @@ defmodule EasyClickhouse.Supervisor do
       tables ->
         ch_timeout_sec = Keyword.get(opts, :ch_timeout_sec)
 
-        [{EasyClickhouse.ChServer, timeout_sec: ch_timeout_sec} | get_children(tables)]
+        children =
+          [EasyClickhouse.Telemetry, {EasyClickhouse.ChServer, timeout_sec: ch_timeout_sec}] ++
+            get_children(tables)
+
+        children
         |> Supervisor.init(strategy: :one_for_one)
     end
   end
