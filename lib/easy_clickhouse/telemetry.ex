@@ -51,14 +51,18 @@ defmodule EasyClickhouse.Telemetry do
         %{db: db, table: table} = _metadata,
         _config
       ) do
+    safe_incr(:total_inserts)
+    safe_incr({:total_inserts, db, table})
+    set({:last_insert, db, table}, {ts, rows, status})
+
     case status do
       :ok ->
         safe_incr(:total_insert_rows, rows)
         safe_incr({:insert_rows, db, table}, rows)
-        set({:last_insert, db, table}, {ts, rows, status})
 
       _ ->
-        set({:last_insert, db, table}, {ts, rows, status})
+        safe_incr(:total_insert_errs)
+        safe_incr({:insert_errs, db, table})
     end
   end
 
